@@ -1,0 +1,15 @@
+{
+    "type": "package",
+    "name": "carlsson87/mod11",
+    "summary": "Verify and calculate check digits according to the algorithm Modulus 11",
+    "license": "BSD-3-Clause",
+    "version": "1.0.1",
+    "exposed-modules": [
+        "Mod11"
+    ],
+    "elm-version": "0.19.0 <= v < 0.20.0",
+    "dependencies": {
+        "elm/core": "1.0.0 <= v < 2.0.0"
+    },
+    "test-dependencies": {}
+}
