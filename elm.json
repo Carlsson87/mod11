@@ -3,7 +3,7 @@
     "name": "carlsson87/mod11",
     "summary": "Verify and calculate check digits according to the algorithm Modulus 11",
     "license": "BSD-3-Clause",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "exposed-modules": [
         "Mod11"
     ],
