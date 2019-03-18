@@ -1,70 +1,103 @@
-module Mod11 exposing (calculate, verify)
+module Mod11 exposing
+    ( Error(..)
+    , hasValidCheckDigit
+    , calculateCheckDigit
+    )
 
-{-| This library helps you create and verify numeric strings according to the Modulus 11 algorithm.
-
-
-# Verify
-
-@docs verify
-
-
-# Calculate
-
-@docs calculate
-
--}
+{-|
 
 
-{-| Verfify a numeric string with the Modulus 11 algorithm.
+# Problems
 
-    verify "123456789" == True
-    verify "123456780" == False
-    verify "nonsense" == False
-
--}
-verify : String -> Bool
-verify str =
-    Maybe.map2 (==)
-        (calculate (String.dropRight 1 str))
-        (List.head (String.toList (String.right 1 str)))
-        |> Maybe.withDefault False
+@docs Error
 
 
-{-| Calculate the "check digit" for a numeric string.
+# Validating
 
-    calculate "12345678" == Just '9'
-    calculate "nonsense" == Nothing
+@docs hasValidCheckDigit
+
+
+# Constructing
+
+@docs calculateCheckDigit
 
 -}
-calculate : String -> Maybe Char
-calculate str =
-    String.split "" str
-        |> List.map String.toInt
-        |> List.foldl (Maybe.map2 (::)) (Just [])
-        |> Maybe.map ((::) 0)
-        |> Maybe.andThen calculateHelp
 
 
-generateWeightList : Int -> List Int
-generateWeightList length =
-    List.range 0 length
-        |> List.map (modBy 10 >> (+) 1)
+{-| The Modulus 11 algorithm works on sequences of digits, but since boths lists and integers
+can represent values that are invalid in this context there are some cases that will result in
+errors.
+-}
+type Error
+    = NumbersOutOfRange
+    | EmptySequence
+    | InvalidMod11Number
 
 
-calculateHelp : List Int -> Maybe Char
-calculateHelp ints =
-    List.map2 (*) ints (generateWeightList (List.length ints))
-        |> List.sum
-        |> modBy 11
-        |> toCheckDigit
-        |> Maybe.andThen (String.fromInt >> String.uncons >> Maybe.map Tuple.first)
+{-| Check if the last digit in a sequence of digits is a valid check
+digit for the sequence according to the Modulus 11 algorithm.
+
+    hasValidCheckDigit [3, 2, 4, 5, 5, 8] == Ok True
+
+    hasValidCheckDigit [ -2, 3 4 ] == Err NumbersOutOfRange
+
+    hasValidCheckDigit [] == Err EmptySequence
+
+    hasValidCheckDigit [0, 0, 0] = Err InvalidMod11Number
+
+-}
+hasValidCheckDigit : List Int -> Result Error Bool
+hasValidCheckDigit numbers =
+    case List.reverse numbers of
+        [] ->
+            Err EmptySequence
+
+        head :: tail ->
+            calculateCheckDigit (List.reverse tail)
+                |> Result.map ((==) head)
 
 
-toCheckDigit : Int -> Maybe Int
-toCheckDigit int =
-    if int == 0 then
-        Just 0
-    else if int == 1 then
-        Nothing
+{-| Calculate the "check digit" for a given sequence of digits.
+
+    calculateCheckDigit [ 1, 2, 3 ] == Ok 6
+
+    calculateCheckDigit [ 1, 2, 30 ] == Err NumbersOutOfRange
+
+-}
+calculateCheckDigit : List Int -> Result Error Int
+calculateCheckDigit numbers =
+    if List.isEmpty numbers then
+        Err EmptySequence
+
+    else if List.all isSingleDigit numbers then
+        List.reverse numbers
+            |> (::) 0
+            |> List.indexedMap applyWeight
+            |> List.sum
+            |> toCheckDigit
+
     else
-        Just (11 - int)
+        Err NumbersOutOfRange
+
+
+isSingleDigit : Int -> Bool
+isSingleDigit n =
+    n >= 0 && n <= 9
+
+
+toCheckDigit : Int -> Result Error Int
+toCheckDigit num =
+    case 11 - remainderBy 11 num of
+        10 ->
+            Err InvalidMod11Number
+
+        11 ->
+            Ok 0
+
+        n ->
+            Ok n
+
+
+applyWeight : Int -> Int -> Int
+applyWeight index num =
+    (modBy 10 index + 1) * num
